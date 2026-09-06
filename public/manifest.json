@@ -1,0 +1,17 @@
+{
+  "name": "Ngajar Time",
+  "short_name": "NgajarTime",
+  "description": "Aplikasi Manajemen Les Privat & Invoice Profesional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E5E77",
+  "theme_color": "#0E5E77",
+  "icons": [
+    {
+      "src": "/assets/app_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
