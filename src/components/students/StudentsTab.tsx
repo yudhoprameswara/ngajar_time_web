@@ -19,14 +19,21 @@ export const StudentsTab: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
     const q = query(collection(db, 'students'), where('userId', '==', currentUser.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: StudentModel[] = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<StudentModel, 'id'>),
-      }));
-      setStudents(list);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: StudentModel[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<StudentModel, 'id'>),
+        }));
+        setStudents(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching students:", error);
+        setLoading(false);
+      }
+    );
     return () => unsubscribe();
   }, [currentUser]);
 

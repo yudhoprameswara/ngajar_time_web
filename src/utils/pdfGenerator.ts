@@ -65,19 +65,29 @@ export const generateInvoicePdf = (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(`Orang Tua / Wali dari ${student.name}`, margin + 4, currentY + 11.5);
+  const cleanStudentName = student.name.trim();
+  const mainRecipientText = `Orang Tua / Wali dari ${cleanStudentName}`;
+  const recipientWidth = doc.getTextWidth(mainRecipientText);
+  doc.text(mainRecipientText, margin + 4, currentY + 11.5);
 
-  if (student.notes) {
+  if (student.notes && student.notes.trim()) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
-    doc.text(`(${student.notes})`, margin + 4 + doc.getTextWidth(`Orang Tua / Wali dari ${student.name} `), currentY + 11.5);
+    // Berikan jarak (gap) 3mm agar tidak mepet / menempel dengan nama murid
+    const noteX = margin + 4 + recipientWidth + 3;
+    doc.text(`(${student.notes.trim()})`, noteX, currentY + 11.5);
   }
 
   currentY += 21;
 
+  // Sort sessions chronologically (earliest to latest) by startTime
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
   // 3. Table of Sessions
-  const tableData = sessions.map((s, index) => [
+  const tableData = sortedSessions.map((s, index) => [
     (index + 1).toString(),
     `${formatDateIndo(s.startTime)}\n${formatTimeOnly(s.startTime)} - ${formatTimeOnly(s.endTime)}`,
     s.topic || 'Les Reguler',
@@ -118,8 +128,8 @@ export const generateInvoicePdf = (
   });
 
   // Calculate totals
-  const totalFee = sessions.reduce((acc, s) => acc + s.totalFee, 0);
-  const totalMinutes = sessions.reduce((acc, s) => acc + s.billedDurationMinutes, 0);
+  const totalFee = sortedSessions.reduce((acc, s) => acc + s.totalFee, 0);
+  const totalMinutes = sortedSessions.reduce((acc, s) => acc + s.billedDurationMinutes, 0);
 
   // @ts-ignore
   let finalY = (doc as any).lastAutoTable?.finalY || currentY + 40;
@@ -136,7 +146,7 @@ export const generateInvoicePdf = (
   doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    `Total Waktu: ${Math.floor(totalMinutes / 60)} jam ${totalMinutes % 60} menit (${sessions.length} Sesi)`,
+    `Total Waktu: ${Math.floor(totalMinutes / 60)} jam ${totalMinutes % 60} menit (${sortedSessions.length} Sesi)`,
     210 - margin,
     finalY,
     { align: 'right' }
@@ -162,12 +172,37 @@ export const generateInvoicePdf = (
     doc.setTextColor(15, 23, 42);
     doc.text('Metode Pembayaran Transfer:', margin + 4, finalY + 6);
 
+    const labelX = margin + 4;
+    const colonX = margin + 28;
+    const valueX = margin + 30.5;
+
+    // Row 1: Bank
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`Bank / E-Wallet : ${user.bankName}`, margin + 4, finalY + 11.5);
-    doc.text(`No. Rekening    : ${user.accountNumber}`, margin + 4, finalY + 16.5);
-    doc.text(`Atas Nama       : ${user.accountHolderName || user.displayName}`, margin + 4, finalY + 21.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Bank / E-Wallet', labelX, finalY + 11.5);
+    doc.text(':', colonX, finalY + 11.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(user.bankName || '-', valueX, finalY + 11.5);
+
+    // Row 2: No Rekening
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('No. Rekening', labelX, finalY + 16.5);
+    doc.text(':', colonX, finalY + 16.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(user.accountNumber || '-', valueX, finalY + 16.5);
+
+    // Row 3: Atas Nama
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Atas Nama', labelX, finalY + 21.5);
+    doc.text(':', colonX, finalY + 21.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(user.accountHolderName || user.displayName, valueX, finalY + 21.5);
 
     // Signature on the right
     doc.setFont('helvetica', 'normal');

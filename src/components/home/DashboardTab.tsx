@@ -35,27 +35,34 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       where('userId', '==', currentUser.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: SessionModel[] = snapshot.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          userId: data.userId,
-          studentId: data.studentId,
-          studentName: data.studentName,
-          hourlyRate: data.hourlyRate || 0,
-          startTime: data.startTime ? data.startTime.toDate() : new Date(),
-          endTime: data.endTime ? data.endTime.toDate() : new Date(),
-          actualDurationMinutes: data.actualDurationMinutes || 0,
-          billedDurationMinutes: data.billedDurationMinutes || 0,
-          topic: data.topic || 'Les Reguler',
-          totalFee: data.totalFee || 0,
-        };
-      });
-      list.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-      setSessions(list);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: SessionModel[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            userId: data.userId,
+            studentId: data.studentId,
+            studentName: data.studentName,
+            hourlyRate: data.hourlyRate || 0,
+            startTime: data.startTime ? data.startTime.toDate() : new Date(),
+            endTime: data.endTime ? data.endTime.toDate() : new Date(),
+            actualDurationMinutes: data.actualDurationMinutes || 0,
+            billedDurationMinutes: data.billedDurationMinutes || 0,
+            topic: data.topic || 'Les Reguler',
+            totalFee: data.totalFee || 0,
+          };
+        });
+        list.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+        setSessions(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching sessions:", error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [currentUser]);

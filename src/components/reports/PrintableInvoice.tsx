@@ -21,14 +21,17 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
   onClose,
 }) => {
   const [generatingPdf, setGeneratingPdf] = useState(false);
-  const totalFee = sessions.reduce((acc, s) => acc + s.totalFee, 0);
-  const totalMinutes = sessions.reduce((acc, s) => acc + s.billedDurationMinutes, 0);
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+  const totalFee = sortedSessions.reduce((acc, s) => acc + s.totalFee, 0);
+  const totalMinutes = sortedSessions.reduce((acc, s) => acc + s.billedDurationMinutes, 0);
   const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
 
   const handleExportPdf = async () => {
     setGeneratingPdf(true);
     try {
-      const doc = generateInvoicePdf(user, student, sessions, monthYearStr);
+      const doc = generateInvoicePdf(user, student, sortedSessions, monthYearStr);
       const cleanStudentName = student.name.replace(/[^a-zA-Z0-9]/g, '_');
       const filename = `Invoice_${cleanStudentName}_${monthYearStr.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       await shareOrDownloadPdf(doc, filename);
@@ -114,11 +117,19 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
 
           {/* Bill To */}
           <div className="mb-4 sm:mb-6 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-100">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-              Ditagihkan Kepada:
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              DITUJUKAN KEPADA:
             </span>
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900">{student.name}</h3>
-            {student.notes && <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">{student.notes}</p>}
+            <div className="flex items-baseline gap-2.5 flex-wrap">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                Orang Tua / Wali dari {student.name.trim()}
+              </h3>
+              {student.notes && student.notes.trim() && (
+                <span className="text-[11px] sm:text-xs text-slate-500 font-normal">
+                  ({student.notes.trim()})
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Sessions Table with horizontal scroll on mobile */}
@@ -134,7 +145,7 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sessions.map((s, idx) => (
+                {sortedSessions.map((s, idx) => (
                   <tr key={s.id || idx}>
                     <td className="py-2.5 px-3 font-medium">
                       {formatDateIndo(s.startTime)}
@@ -158,7 +169,7 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
               <tfoot>
                 <tr className="border-t-2 border-slate-900 font-bold text-xs sm:text-sm bg-slate-50/50">
                   <td colSpan={3} className="py-2.5 px-3 text-slate-900">
-                    Total Tagihan ({sessions.length} Sesi, {Math.floor(totalMinutes/60)} jam {totalMinutes%60} mnt)
+                    Total Tagihan ({sortedSessions.length} Sesi, {Math.floor(totalMinutes/60)} jam {totalMinutes%60} mnt)
                   </td>
                   <td colSpan={2} className="py-2.5 px-3 text-right text-primary font-black text-sm sm:text-base">
                     {formatRupiah(totalFee)}
@@ -173,16 +184,22 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
               <h4 className="text-xs font-bold text-slate-900 mb-2">Instruksi Pembayaran:</h4>
               <p className="text-xs text-slate-600">Mohon transfer pembayaran ke:</p>
-              <div className="mt-2 text-xs space-y-0.5 font-medium">
-                <p className="text-slate-800">
-                  Bank / E-Wallet: <span className="font-bold">{user.bankName || '-'}</span>
-                </p>
-                <p className="text-slate-800">
-                  Nomor Rekening: <span className="font-bold">{user.accountNumber || '-'}</span>
-                </p>
-                <p className="text-slate-800">
-                  Atas Nama: <span className="font-bold">{user.accountHolderName || user.displayName}</span>
-                </p>
+              <div className="mt-2.5 text-xs space-y-1.5 font-medium">
+                <div className="grid grid-cols-[110px_12px_1fr] text-slate-800 items-center">
+                  <span className="text-slate-500">Bank / E-Wallet</span>
+                  <span className="text-slate-400">:</span>
+                  <span className="font-bold">{user.bankName || '-'}</span>
+                </div>
+                <div className="grid grid-cols-[110px_12px_1fr] text-slate-800 items-center">
+                  <span className="text-slate-500">No. Rekening</span>
+                  <span className="text-slate-400">:</span>
+                  <span className="font-bold">{user.accountNumber || '-'}</span>
+                </div>
+                <div className="grid grid-cols-[110px_12px_1fr] text-slate-800 items-center">
+                  <span className="text-slate-500">Atas Nama</span>
+                  <span className="text-slate-400">:</span>
+                  <span className="font-bold">{user.accountHolderName || user.displayName}</span>
+                </div>
               </div>
             </div>
 

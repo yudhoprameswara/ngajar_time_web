@@ -31,36 +31,49 @@ export const ReportsTab: React.FC = () => {
 
     // Fetch students
     const qStudents = query(collection(db, 'students'), where('userId', '==', currentUser.uid));
-    const unsubStudents = onSnapshot(qStudents, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<StudentModel, 'id'>) }));
-      setStudents(list);
-      if (list.length > 0 && !selectedStudentId) {
-        setSelectedStudentId(list[0].id);
+    const unsubStudents = onSnapshot(
+      qStudents,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<StudentModel, 'id'>) }));
+        setStudents(list);
+        if (list.length > 0 && !selectedStudentId) {
+          setSelectedStudentId(list[0].id);
+        }
+      },
+      (error) => {
+        console.error("Error fetching students in reports:", error);
       }
-    });
+    );
 
     // Fetch sessions
     const qSessions = query(collection(db, 'sessions'), where('userId', '==', currentUser.uid));
-    const unsubSessions = onSnapshot(qSessions, (snap) => {
-      const list: SessionModel[] = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          userId: data.userId,
-          studentId: data.studentId,
-          studentName: data.studentName,
-          hourlyRate: data.hourlyRate || 0,
-          startTime: data.startTime ? data.startTime.toDate() : new Date(),
-          endTime: data.endTime ? data.endTime.toDate() : new Date(),
-          actualDurationMinutes: data.actualDurationMinutes || 0,
-          billedDurationMinutes: data.billedDurationMinutes || 0,
-          topic: data.topic || 'Les Reguler',
-          totalFee: data.totalFee || 0,
-        };
-      });
-      setSessions(list);
-      setLoading(false);
-    });
+    const unsubSessions = onSnapshot(
+      qSessions,
+      (snap) => {
+        const list: SessionModel[] = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            userId: data.userId,
+            studentId: data.studentId,
+            studentName: data.studentName,
+            hourlyRate: data.hourlyRate || 0,
+            startTime: data.startTime ? data.startTime.toDate() : new Date(),
+            endTime: data.endTime ? data.endTime.toDate() : new Date(),
+            actualDurationMinutes: data.actualDurationMinutes || 0,
+            billedDurationMinutes: data.billedDurationMinutes || 0,
+            topic: data.topic || 'Les Reguler',
+            totalFee: data.totalFee || 0,
+          };
+        });
+        setSessions(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching sessions in reports:", error);
+        setLoading(false);
+      }
+    );
 
     return () => {
       unsubStudents();
@@ -77,12 +90,14 @@ export const ReportsTab: React.FC = () => {
   }
 
   // --- INVOICE TAB CALCULATIONS ---
-  const invoiceSessions = sessions.filter((s) => {
-    const d = s.startTime;
-    const matchStudent = s.studentId === selectedStudentId;
-    const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
-    return matchStudent && matchMonth;
-  });
+  const invoiceSessions = sessions
+    .filter((s) => {
+      const d = s.startTime;
+      const matchStudent = s.studentId === selectedStudentId;
+      const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+      return matchStudent && matchMonth;
+    })
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   const invoiceTotalFee = invoiceSessions.reduce((acc, s) => acc + s.totalFee, 0);
   const invoiceTotalMinutes = invoiceSessions.reduce((acc, s) => acc + s.billedDurationMinutes, 0);
